@@ -43,13 +43,14 @@ fn startup(
     mut textures: ResMut<Assets<Image>>,
     mut map_query: MapQuery,
 ) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(Camera2dBundle::default());
 
     let tile_size = Vec2::new(16.0, 16.0);
 
     let mut atlas_builder = TileAtlasBuilder::new(tile_size);
     for handle in texture_handles.handles.iter() {
-        let texture = textures.get(handle).unwrap();
+        let typed_handle: Handle<Image> = handle.typed_weak();
+        let texture = textures.get(&typed_handle).unwrap();
         atlas_builder
             .add_texture(handle.clone_weak().typed::<Image>(), texture)
             .unwrap();

@@ -1,7 +1,9 @@
-use bevy::render::render_resource::std140::AsStd140;
+use bevy::core_pipeline::core_2d::Transparent2d;
+use bevy::render::extract_component::{ComponentUniforms, DynamicUniformIndex};
+use bevy::render::render_resource::ShaderType;
+use bevy::render::Extract;
+use bevy::utils::FloatOrd;
 use bevy::{
-    core::FloatOrd,
-    core_pipeline::Transparent2d,
     ecs::system::{
         lifetimeless::{Read, SQuery, SRes},
         SystemParamItem,
@@ -12,7 +14,6 @@ use bevy::{
     render::{
         mesh::GpuBufferInfo,
         render_asset::RenderAssets,
-        render_component::{ComponentUniforms, DynamicUniformIndex},
         render_phase::{
             DrawFunctions, RenderCommand, RenderCommandResult, RenderPhase, TrackedRenderPass,
         },
@@ -76,7 +77,7 @@ pub fn extract_tilemaps(
         &TilemapUniformData,
         &Handle<Mesh>,
     )>,
-    images: Res<Assets<Image>>,
+    images: Extract<Res<Assets<Image>>>,
 ) {
     let mut extracted_tilemaps = Vec::new();
     for (entity, transform, chunk, tilemap_uniform, mesh_handle) in query.iter() {
@@ -119,7 +120,7 @@ pub struct TilemapPipeline {
     pub mesh_layout: BindGroupLayout,
 }
 
-#[derive(AsStd140, Component, Clone)]
+#[derive(ShaderType, Component, Clone)]
 pub struct MeshUniform {
     pub transform: Mat4,
 }
@@ -282,7 +283,7 @@ impl SpecializedRenderPipeline for TilemapPipeline {
                 shader,
                 shader_defs: vec![],
                 entry_point: "fragment".into(),
-                targets: vec![ColorTargetState {
+                targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: Some(BlendState {
                         color: BlendComponent {
@@ -297,7 +298,7 @@ impl SpecializedRenderPipeline for TilemapPipeline {
                         },
                     }),
                     write_mask: ColorWrites::ALL,
-                }],
+                })],
             }),
             layout: Some(vec![
                 self.view_layout.clone(),
@@ -481,7 +482,7 @@ pub fn queue_meshes(
                     entity,
                     draw_function: draw_tilemap,
                     pipeline: pipeline_id,
-                    sort_key: FloatOrd(transform.translation.z as f32),
+                    sort_key: FloatOrd(transform.translation().z as f32),
                     batch_range: None,
                 });
             }
